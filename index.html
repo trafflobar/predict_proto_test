@@ -160,11 +160,17 @@
         </button>
     </div>
 
+    <!-- Hidden Elements for CORS Bypass -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+    <form id="google_form" method="POST" target="hidden_iframe" style="display:none;">
+        <input type="hidden" name="data" id="google_form_data">
+    </form>
+
     <script>
         // --- 1. CONFIGURATION ---
         
         // ! ВСТАВЬ СЮДА ССЫЛКУ НА СВОЙ GOOGLE APPS SCRIPT (Web App URL) !
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQBOx_7ZtsO5LPqn5oKKm9boPkoctlEdp7jzlRRRzfsTYzy5zjL-j0BKhCNs6ZDM-a/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_jxsmBTzfwfU3UtE9vIX9r-b3UlSkK_URs8RCiOJmbFirTPlcGrcih6DXFSwqP4f8/exec';
 
         const MATCHES = [
             { id: 'm1', team1: 'Ecuador', flag1: '🇪🇨', team2: 'Curacao', flag2: '🇨🇼' },
@@ -311,29 +317,15 @@
             btn.innerHTML = 'Sending... ⏳';
             btn.disabled = true;
 
-            // Надежный метод обхода ошибки "Failed to fetch" (CORS)
-            // Имитируем стандартную отправку HTML-формы через POST и no-cors
-            const formData = new URLSearchParams();
-            formData.append('data', JSON.stringify(payload));
+            // МЕТОД ТАНКА: Отправка через скрытую форму (обходим любые блокировки CORS и песочниц)
+            document.getElementById('google_form').action = GOOGLE_SCRIPT_URL;
+            document.getElementById('google_form_data').value = JSON.stringify(payload);
+            document.getElementById('google_form').submit();
 
-            fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', 
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: formData
-            })
-            .then(() => {
-                // При no-cors ответ браузера непрозрачен, всегда идем сюда при отсутствии блокировки сети
+            // Ждем 1.5 секунды, чтобы форма успела улететь, и показываем окно успеха
+            setTimeout(() => {
                 goToStep('step-success');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Даже если песочница ругается, форма скорее всего ушла
-                alert('Request sent. Please wait for the confirmation.');
-                goToStep('step-success');
-            });
+            }, 1500);
         }
     </script>
 </body>
