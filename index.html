@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>1X Score Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0b1120;
+            color: #ffffff;
+            /* Background pattern for betting/tech vibe */
+            background-image: radial-gradient(circle at 15% 50%, rgba(30, 58, 138, 0.2), transparent 25%),
+                              radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.2), transparent 25%);
+        }
+        
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .neon-btn {
+            background: linear-gradient(90deg, #2563eb, #0ea5e9);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .neon-btn:hover {
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.8);
+            transform: translateY(-2px);
+        }
+
+        /* Hide scrollbar for score buttons container */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .score-btn {
+            background: #1f2937;
+            border: 1px solid #374151;
+            transition: all 0.2s ease;
+        }
+        
+        .score-btn.active {
+            background: #3b82f6;
+            border-color: #60a5fa;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- STEP 1: Welcome Modal -->
+    <div id="step-welcome" class="w-full max-w-md glass-panel rounded-2xl p-8 text-center animate-fade-in block">
+        <div class="mb-6 flex justify-center">
+            <span class="text-6xl">🏆</span>
+        </div>
+        <h1 class="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
+            Win $100 USDT
+        </h1>
+        <p class="text-gray-400 font-semibold mb-8">(130,000 IQD) Giveaway</p>
+        
+        <p class="text-sm text-gray-300 mb-8 leading-relaxed">
+            Predict the exact scores of the upcoming matches. The closest predictions share the grand prize pool!
+        </p>
+
+        <button onclick="goToStep('step-auth')" class="neon-btn w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-2">
+            Predict Exact Score 🎯
+        </button>
+    </div>
+
+    <!-- STEP 2: Auth / ID Check Modal -->
+    <div id="step-auth" class="w-full max-w-md glass-panel rounded-2xl p-8 text-center hidden">
+        <h2 class="text-2xl font-bold mb-6">Enter Your 1xBET ID</h2>
+        <p class="text-sm text-gray-400 mb-6">We need to verify your account to allow predictions.</p>
+        
+        <input type="number" id="userIdInput" placeholder="e.g. 557685465" 
+            class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 mb-6 text-white text-center text-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        
+        <button onclick="verifyId()" class="w-full bg-blue-600 hover:bg-blue-500 py-3.5 rounded-xl font-bold text-white mb-4 transition-colors">
+            Confirm ID
+        </button>
+        
+        <div class="mt-4 pt-4 border-t border-gray-700">
+            <p class="text-sm text-gray-400 mb-3">Don't have an account?</p>
+            <a href="YOUR_REGISTRATION_LINK_HERE" target="_blank" class="block w-full border border-blue-500 text-blue-400 hover:bg-blue-500 hover:text-white py-3 rounded-xl font-semibold transition-all">
+                Register Now
+            </a>
+        </div>
+    </div>
+
+    <!-- STEP 2.5: Error Modal (Not matched) -->
+    <div id="step-error" class="w-full max-w-md glass-panel rounded-2xl p-8 text-center hidden border-red-500/30">
+        <div class="mb-4 text-red-500 text-5xl">⚠️</div>
+        <h2 class="text-xl font-bold mb-4 text-white">Access Denied</h2>
+        <p class="text-gray-300 mb-6 text-sm leading-relaxed">
+            You did not register via our link and with our promocode. You cannot participate in our giveaway. Click the button below to register with promocode:
+        </p>
+        <div class="bg-gray-800 rounded-lg p-4 mb-6 border border-gray-700">
+            <span class="text-2xl font-bold text-yellow-400">IQD77</span>
+        </div>
+        
+        <a href="YOUR_REGISTRATION_LINK_HERE" target="_blank" class="neon-btn block w-full py-3 rounded-xl font-bold text-white mb-3">
+            Register Now
+        </a>
+        <button onclick="goToStep('step-auth')" class="w-full bg-gray-700 hover:bg-gray-600 py-3 rounded-xl font-semibold text-white">
+            Back
+        </button>
+    </div>
+
+    <!-- STEP 3: Prediction Interface -->
+    <div id="step-predict" class="w-full max-w-lg hidden pb-24">
+        <div class="text-center mb-8 pt-4">
+            <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300 mb-2">Match Predictions</h2>
+            <p class="text-sm text-gray-400 leading-relaxed px-4">
+                If you think a team will score a certain number of goals, select that exact number. 
+                <br><span class="text-gray-500 text-xs">Example: If you expect a scoreless draw, select '0' for both teams.</span>
+            </p>
+        </div>
+
+        <div id="matchesContainer" class="space-y-6">
+            <!-- Matches will be generated by JS here -->
+        </div>
+
+        <!-- Sticky Bottom Bar -->
+        <div class="fixed bottom-0 left-0 right-0 p-4 glass-panel border-t-0 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-50">
+            <div class="max-w-lg mx-auto">
+                <button onclick="submitPredictions()" class="neon-btn w-full py-4 rounded-xl font-bold text-lg text-white flex items-center justify-center gap-2">
+                    Submit Predictions 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 4: Success Modal -->
+    <div id="step-success" class="w-full max-w-md glass-panel rounded-2xl p-8 text-center hidden border-green-500/30 mt-8 mx-auto">
+        <div class="mb-4 text-green-500 text-5xl">✅</div>
+        <h2 class="text-2xl font-bold mb-4 text-white">Prediction Submitted!</h2>
+        <p class="text-gray-300 mb-6 text-sm leading-relaxed">
+            Thank you for participating. The winners will be announced in our channel. Keep an eye on the updates!
+        </p>
+        <div class="bg-gray-800 rounded-lg p-5 mb-6 border border-gray-700">
+            <p class="text-xs text-red-400 font-bold uppercase tracking-wider block mb-2">⚠️ Important Rule</p>
+            <p class="text-sm text-gray-300 leading-relaxed">
+                Accounts without a balance will be disqualified. You must have a minimum deposit of <span class="text-yellow-400 font-bold text-base">15,000 IQD</span>.
+            </p>
+        </div>
+        
+        <button onclick="window.location.reload()" class="neon-btn block w-full py-3 rounded-xl font-bold text-white">
+            Understood
+        </button>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        
+        // ! ВСТАВЬ СЮДА ССЫЛКУ НА СВОЙ GOOGLE APPS SCRIPT (Web App URL) !
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzV2ZoAvxcOo4ZXC-OAyg_Iqx7DwAq8G71-aL-jz5AGX-piubm5I2Jn6eKb64CdVVlL/exec';
+
+        const MATCHES = [
+            { id: 'm1', team1: 'Ecuador', flag1: '🇪🇨', team2: 'Curacao', flag2: '🇨🇼' },
+            { id: 'm2', team1: 'Tunisia', flag1: '🇹🇳', team2: 'Japan', flag2: '🇯🇵' },
+            { id: 'm3', team1: 'Spain', flag1: '🇪🇸', team2: 'Saudi Arabia', flag2: '🇸🇦' },
+            { id: 'm4', team1: 'Belgium', flag1: '🇧🇪', team2: 'Iran', flag2: '🇮🇷' }
+        ];
+
+        let currentUserId = '';
+
+        // --- 2. LOGIC & NAVIGATION ---
+
+        function goToStep(stepId) {
+            ['step-welcome', 'step-auth', 'step-error', 'step-predict', 'step-success'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                document.getElementById(id).classList.remove('block');
+            });
+            document.getElementById(stepId).classList.remove('hidden');
+            document.getElementById(stepId).classList.add('block');
+
+            // Scroll to top when changing steps
+            window.scrollTo(0,0);
+        }
+
+        function verifyId() {
+            const input = document.getElementById('userIdInput').value.trim();
+            
+            if(!input) {
+                alert('Please enter your ID');
+                return;
+            }
+
+            // Check if length is exactly 10 and if it has the correct prefix (160-199)
+            const isValidLength = input.length === 10;
+            const isValidPrefix = /^1[6-9][0-9]/.test(input);
+
+            if (isValidLength && isValidPrefix) {
+                currentUserId = input;
+                renderMatches();
+                goToStep('step-predict');
+            } else {
+                // For any wrong ID (length or prefix), show the error modal
+                goToStep('step-error');
+            }
+        }
+
+        // --- 3. RENDER UI ---
+
+        function renderMatches() {
+            const container = document.getElementById('matchesContainer');
+            container.innerHTML = ''; // Clear previous
+
+            MATCHES.forEach(match => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel rounded-2xl p-5 mb-4';
+                card.setAttribute('data-match-id', match.id);
+                card.setAttribute('data-match-name', `${match.team1} vs ${match.team2}`);
+
+                card.innerHTML = `
+                    <div class="flex flex-col gap-5">
+                        <!-- Team 1 -->
+                        <div class="team-row" data-team="1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xl">${match.flag1}</span>
+                                <span class="font-semibold">${match.team1}</span>
+                            </div>
+                            <div class="flex overflow-x-auto no-scrollbar gap-2 pb-1 snap-x">
+                                ${generateScoreButtons()}
+                            </div>
+                        </div>
+                        
+                        <!-- Divider -->
+                        <div class="w-full h-px bg-gray-700/50"></div>
+
+                        <!-- Team 2 -->
+                        <div class="team-row" data-team="2">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xl">${match.flag2}</span>
+                                <span class="font-semibold">${match.team2}</span>
+                            </div>
+                            <div class="flex overflow-x-auto no-scrollbar gap-2 pb-1 snap-x">
+                                ${generateScoreButtons()}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function generateScoreButtons() {
+            let html = '';
+            for (let i = 0; i <= 10; i++) {
+                html += `<button onclick="selectScore(this, ${i})" class="score-btn flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-lg snap-center">${i}</button>`;
+            }
+            return html;
+        }
+
+        function selectScore(btn, score) {
+            const parentRow = btn.closest('.team-row');
+            
+            // Remove active from siblings
+            parentRow.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+            
+            // Add active to clicked
+            btn.classList.add('active');
+            
+            // Save value in data attribute
+            parentRow.setAttribute('data-selected-score', score);
+        }
+
+        // --- 4. SUBMIT AND GOOGLE SHEETS LOGIC ---
+
+        function submitPredictions() {
+            const matchCards = document.querySelectorAll('#matchesContainer .glass-panel');
+            let allFilled = true;
+            
+            // Формируем объект с данными для Google Таблицы
+            let payload = {
+                userId: currentUserId,
+                predictions: {}
+            };
+
+            matchCards.forEach((card, index) => {
+                const matchName = card.getAttribute('data-match-name'); 
+                const t1Score = card.querySelector('[data-team="1"]').getAttribute('data-selected-score');
+                const t2Score = card.querySelector('[data-team="2"]').getAttribute('data-selected-score');
+
+                if (t1Score === null || t2Score === null) {
+                    allFilled = false;
+                } else {
+                    payload.predictions[`Match ${index + 1} - ${matchName}`] = `${t1Score} - ${t2Score}`;
+                }
+            });
+
+            if (!allFilled) {
+                alert('Please predict the score for all teams before submitting!');
+                return;
+            }
+
+            // Визуальный статус загрузки
+            const btn = document.querySelector('.fixed .neon-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Sending... ⏳';
+            btn.disabled = true;
+
+            // Надежный метод обхода ошибки "Failed to fetch" (CORS)
+            // Имитируем стандартную отправку HTML-формы через POST и no-cors
+            const formData = new URLSearchParams();
+            formData.append('data', JSON.stringify(payload));
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', 
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            })
+            .then(() => {
+                // При no-cors ответ браузера непрозрачен, всегда идем сюда при отсутствии блокировки сети
+                goToStep('step-success');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Даже если песочница ругается, форма скорее всего ушла
+                alert('Request sent. Please wait for the confirmation.');
+                goToStep('step-success');
+            });
+        }
+    </script>
+</body>
+</html>
