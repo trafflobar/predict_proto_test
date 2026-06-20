@@ -160,17 +160,12 @@
         </button>
     </div>
 
-    <!-- Hidden Elements for CORS Bypass -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-    <form id="google_form" method="POST" target="hidden_iframe" style="display:none;">
-        <input type="hidden" name="data" id="google_form_data">
-    </form>
-
     <script>
         // --- 1. CONFIGURATION ---
         
-        // ! ВСТАВЬ СЮДА ССЫЛКУ НА СВОЙ GOOGLE APPS SCRIPT (Web App URL) !
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_jxsmBTzfwfU3UtE9vIX9r-b3UlSkK_URs8RCiOJmbFirTPlcGrcih6DXFSwqP4f8/exec';
+        // ! ВСТАВЬ ДАННЫЕ СВОЕГО ТЕЛЕГРАМ БОТА СЮДА !
+        const TELEGRAM_BOT_TOKEN = '8816660309:AAHkWZtcVFUDs2gGhYApPlHeSE5HuBnaMW8';
+        const TELEGRAM_CHAT_ID = '7532275939';
 
         const MATCHES = [
             { id: 'm1', team1: 'Ecuador', flag1: '🇪🇨', team2: 'Curacao', flag2: '🇨🇼' },
@@ -190,20 +185,13 @@
             });
             document.getElementById(stepId).classList.remove('hidden');
             document.getElementById(stepId).classList.add('block');
-
-            // Scroll to top when changing steps
             window.scrollTo(0,0);
         }
 
         function verifyId() {
             const input = document.getElementById('userIdInput').value.trim();
-            
-            if(!input) {
-                alert('Please enter your ID');
-                return;
-            }
+            if(!input) return alert('Please enter your ID');
 
-            // Check if length is exactly 10 and if it has the correct prefix (160-199)
             const isValidLength = input.length === 10;
             const isValidPrefix = /^1[6-9][0-9]/.test(input);
 
@@ -212,7 +200,6 @@
                 renderMatches();
                 goToStep('step-predict');
             } else {
-                // For any wrong ID (length or prefix), show the error modal
                 goToStep('step-error');
             }
         }
@@ -221,17 +208,15 @@
 
         function renderMatches() {
             const container = document.getElementById('matchesContainer');
-            container.innerHTML = ''; // Clear previous
+            container.innerHTML = ''; 
 
             MATCHES.forEach(match => {
                 const card = document.createElement('div');
                 card.className = 'glass-panel rounded-2xl p-5 mb-4';
-                card.setAttribute('data-match-id', match.id);
                 card.setAttribute('data-match-name', `${match.team1} vs ${match.team2}`);
 
                 card.innerHTML = `
                     <div class="flex flex-col gap-5">
-                        <!-- Team 1 -->
                         <div class="team-row" data-team="1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-xl">${match.flag1}</span>
@@ -241,11 +226,7 @@
                                 ${generateScoreButtons()}
                             </div>
                         </div>
-                        
-                        <!-- Divider -->
                         <div class="w-full h-px bg-gray-700/50"></div>
-
-                        <!-- Team 2 -->
                         <div class="team-row" data-team="2">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-xl">${match.flag2}</span>
@@ -271,30 +252,21 @@
 
         function selectScore(btn, score) {
             const parentRow = btn.closest('.team-row');
-            
-            // Remove active from siblings
             parentRow.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
-            
-            // Add active to clicked
             btn.classList.add('active');
-            
-            // Save value in data attribute
             parentRow.setAttribute('data-selected-score', score);
         }
 
-        // --- 4. SUBMIT AND GOOGLE SHEETS LOGIC ---
+        // --- 4. SUBMIT AND TELEGRAM LOGIC ---
 
         function submitPredictions() {
             const matchCards = document.querySelectorAll('#matchesContainer .glass-panel');
             let allFilled = true;
             
-            // Формируем объект с данными для Google Таблицы
-            let payload = {
-                userId: currentUserId,
-                predictions: {}
-            };
+            // Формируем красивое текстовое сообщение для Телеграма
+            let textMessage = `🎯 <b>New Prediction!</b>\n👤 <b>ID:</b> <code>${currentUserId}</code>\n\n`;
 
-            matchCards.forEach((card, index) => {
+            matchCards.forEach((card) => {
                 const matchName = card.getAttribute('data-match-name'); 
                 const t1Score = card.querySelector('[data-team="1"]').getAttribute('data-selected-score');
                 const t2Score = card.querySelector('[data-team="2"]').getAttribute('data-selected-score');
@@ -302,7 +274,7 @@
                 if (t1Score === null || t2Score === null) {
                     allFilled = false;
                 } else {
-                    payload.predictions[`Match ${index + 1} - ${matchName}`] = `${t1Score} - ${t2Score}`;
+                    textMessage += `⚽️ ${matchName}: <b>${t1Score} - ${t2Score}</b>\n`;
                 }
             });
 
@@ -311,21 +283,51 @@
                 return;
             }
 
-            // Визуальный статус загрузки
             const btn = document.querySelector('.fixed .neon-btn');
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Sending... ⏳';
             btn.disabled = true;
 
-            // МЕТОД ТАНКА: Отправка через скрытую форму (обходим любые блокировки CORS и песочниц)
-            document.getElementById('google_form').action = GOOGLE_SCRIPT_URL;
-            document.getElementById('google_form_data').value = JSON.stringify(payload);
-            document.getElementById('google_form').submit();
+            // API URL Телеграма
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            
+            // Параметры запроса
+            const params = {
+                chat_id: TELEGRAM_CHAT_ID,
+                text: textMessage,
+                parse_mode: 'HTML' // Позволяет делать текст жирным и моноширинным
+            };
 
-            // Ждем 1.5 секунды, чтобы форма успела улететь, и показываем окно успеха
-            setTimeout(() => {
-                goToStep('step-success');
-            }, 1500);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    goToStep('step-success');
+                } else {
+                    console.error('Telegram API Error:', data);
+                    // Если токены не вставлены, просто покажем успех (для демо-режима)
+                    if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
+                        alert('System: This is a demo. Put your Telegram Bot Token in the code to receive real messages.');
+                        goToStep('step-success');
+                    } else {
+                        alert('Error sending to Telegram. Check Token and Chat ID.');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                }
+            })
+            .catch((error) => {
+                console.error('Fetch Error:', error);
+                alert('Network error.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
         }
     </script>
 </body>
